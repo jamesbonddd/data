@@ -24,8 +24,8 @@ public class CentroidPersistance {
 		FileSystem fs = FileSystem.get(new Configuration());
 		BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
 		Gson g = new Gson();
-		String line;
 		List<Centroid> ret = new ArrayList<Centroid>();
+		String line;
 		while ((line = br.readLine())!= null) 
 			ret.add(g.fromJson(line, Centroid.class));
 		return ret;
@@ -49,6 +49,22 @@ public class CentroidPersistance {
 			pr.println(g.toJson(c));
 		pr.flush();
 		os.close();
+	}
+	
+	/**
+	 * determines the number of dumped Centroids in a in the file with path = path
+	 * @param path
+	 * @return
+	 * @throws IOException
+	 */
+	public static int nbCentroids(Path path) throws IOException {
+		FileSystem fs = FileSystem.get(new Configuration());
+		BufferedReader br=new BufferedReader(new InputStreamReader(fs.open(path)));
+		String line;
+		int nbLines = 0;
+		while ((line = br.readLine())!= null) 
+			nbLines++;
+		return nbLines;
 	}
 	
 }

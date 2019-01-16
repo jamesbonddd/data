@@ -24,4 +24,8 @@ public class Centroid {
 		return id;
 	}
 	
+	public void setId(int id) {
+		this.id = id;
+	}
+	
 }

@@ -24,20 +24,31 @@ import bigdata.util.LineParser;
 
 public class KMeans {
 
-	public static void startIteration(ArrayList<Integer> columns)
+	private static List<Integer> columns;
+	private static int k;
+	private static Path finalOutputPath;
+	
+	public static void init(List<Integer> _columns, int _k,Path path) {
+		columns = _columns;
+		k = _k;
+		finalOutputPath = path;
+	}
+	
+	public static void startIteration()
 			throws IOException, ClassNotFoundException, InterruptedException {
 		Configuration conf = new Configuration();
 
 		Job job = Job.getInstance(conf, "Main");
 		job.getConfiguration().set("columns", (new Gson()).toJson(columns));
 		job.getConfiguration().setInt("numberDimentions", columns.size());
+		
 
 		// delete the old new_centroids.json file (if exists), and create a new empty file.
 		FileSystem fs = FileSystem.get(job.getConfiguration());
 		Path outputPath = new Path("new_centroids.json");
 		fs.createNewFile(outputPath);
 
-		job.setNumReduceTasks(1);
+		job.setNumReduceTasks(k);
 
 		job.setJarByClass(Main.class);
 		job.setMapperClass(JobMapper.class);
@@ -54,7 +65,8 @@ public class KMeans {
 		job.setOutputFormatClass(TextOutputFormat.class);
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 
-		FileInputFormat.addInputPath(job, new Path("sequence_input/part-m-00000"));
+		FileInputFormat.setInputDirRecursive(job, true);
+		FileInputFormat.addInputPath(job, new Path("sequence_input"));
 		Path output = new Path("iteration_output");
 		FileOutputFormat.setOutputPath(job, output);
 		job.waitForCompletion(true);
@@ -122,15 +134,14 @@ public class KMeans {
 
 		public void reduce(IntWritable key, Iterable<PointAcc> values, Context context)
 				throws IOException, InterruptedException {
+			
 			PointAcc moy = new PointAcc(nbDimentions);
 			for (PointAcc pm : values) 
 				moy.accumulate(pm);
 
-			Counter idGen = context.getCounter("any", "centroidIdGen");
-			idGen.increment(1);
-			int id = (int) idGen.getValue();
-
-			CentroidPersistance.append(new Centroid(moy.getCentroid(), id), new Path("new_centroids.json"));
+			Path newCentroidsPath = new Path("new_centroids.json");
+			int id = CentroidPersistance.nbCentroids(newCentroidsPath) + 1;
+			CentroidPersistance.append(new Centroid(moy.getCentroid(), id), newCentroidsPath);
 		}
 	}
 
@@ -170,7 +181,7 @@ public class KMeans {
 		}
 	}
 
-	public static void finalIteration(ArrayList<Integer> columns, Path path)
+	public static void finalIteration()
 			throws IOException, ClassNotFoundException, InterruptedException {
 		Configuration conf = new Configuration();
 
@@ -195,9 +206,10 @@ public class KMeans {
 		job.setOutputFormatClass(TextOutputFormat.class);
 		job.setInputFormatClass(SequenceFileInputFormat.class);
 
-		FileInputFormat.addInputPath(job, new Path("sequence_input/part-m-00000"));
+		FileInputFormat.setInputDirRecursive(job, true);
+		FileInputFormat.addInputPath(job, new Path("sequence_input"));
 
-		FileOutputFormat.setOutputPath(job, path);
+		FileOutputFormat.setOutputPath(job, finalOutputPath);
 		job.waitForCompletion(true);
 	}
 

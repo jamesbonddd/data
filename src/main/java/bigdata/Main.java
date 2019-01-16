@@ -32,14 +32,18 @@ public class Main {
 	public static void main(String[] args) throws Exception {
 
 		parseArguments(args);
+		KMeans.init(columns, k,new Path(outputPath));
 
 		final Path sequenceInputPath = FileFormatConverter.textToSequencial(inputPath, columns);
+		
+		
+		
 		// TODO: remove /part-m-00000 ?
 		initCentroidFile(new Path(sequenceInputPath.toString() + "/part-m-00000"), k);
 
 		while (true) {
 
-			KMeans.startIteration(columns);
+			KMeans.startIteration();
 
 			// check stop condition
 			List<Centroid> currentCentroids = CentroidPersistance.load(new Path("current_centroids.json"));
@@ -55,7 +59,7 @@ public class Main {
 			if (stop)
 				break;
 		}
-		KMeans.finalIteration(columns, new Path(outputPath));
+		KMeans.finalIteration();
 		clean();
 		System.exit(0);
 	}
